@@ -1,0 +1,11 @@
+# ignore Python cache
+__pycache__/
+*.py[cod]
+
+# ignore Streamlit cache
+.streamlit/
+
+# ignore credentials & env
+credentials.json
+.env
+config.py
