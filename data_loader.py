@@ -67,4 +67,4 @@ def load_data():
     df[['Batch', 'Program Pelatihan']] = df['Nama Program pelatihan yang anda ikuti'].str.extract(r'(Batch \d+)\s*-\s*(.+)', expand=True)
     df['Batch'] = df['Batch'].str.strip()
     df['Program Pelatihan'] = df['Program Pelatihan'].str.strip()
-    return df
+    return df, columns_materi_pelatihan, columns_materi_penyelenggaraan, columns_materi_tenaga_pelatih
