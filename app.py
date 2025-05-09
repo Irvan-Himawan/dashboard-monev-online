@@ -55,7 +55,7 @@ with st.container():
         selected_program = st.selectbox("Select Training Program", options=df["Program Pelatihan"].dropna().unique(), index=0)
 
     # Filter DataFrame based on selections
-    filtered_df = df[(df["Batch"] == selected_batch) & (df["Program Pelatihan"] == selected_program)]
+    filtered_df = df_cleaned[(df_cleaned["Batch"] == selected_batch) & (df_cleaned["Program Pelatihan"] == selected_program)]
 
     # Display raw filtered table
     st.subheader("📄 Filtered Responses")
@@ -65,22 +65,16 @@ with st.container():
     st.subheader("📈 Average Score per Question Group")
 
     average_scores = {
-        "Training Material": filtered_df[columns_materi_pelatihan].mean().mean(),
-        "Training Management": filtered_df[columns_materi_penyelenggaraan].mean().mean(),
-        "Trainer Performance": filtered_df[columns_materi_tenaga_pelatih].mean().mean()
+        "Materi Pelatihan": filtered_df[columns_materi_pelatihan].mean().mean().round(2),
+        "Penyelenggaraan/Manajemen": filtered_df[columns_materi_penyelenggaraan].mean().mean().round(2),
+        "Tenaga Pelatih/Instruktur  ": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
     }
 
     # Show as table
-    st.write(pd.DataFrame(average_scores, index=["Average Score"]).T)
+    st.write(pd.DataFrame(average_scores, index=["Rata - rata nilai"]))
 
     # Plot comparison
     chart_data = pd.DataFrame({
         "Category": list(average_scores.keys()),
         "Average Score": list(average_scores.values())
     })
-
-    fig = px.bar(chart_data, x="Category", y="Average Score", color="Category",
-                 title="Average Score Comparison by Category",
-                 text_auto=True, range_y=[0, 5])
-
-    st.plotly_chart(fig, use_container_width=True)

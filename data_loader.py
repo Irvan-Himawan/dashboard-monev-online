@@ -63,7 +63,7 @@ def load_data():
     # convert questions columns to numeric
     df[combine_questions_columns] = df[combine_questions_columns].apply(pd.to_numeric, errors='coerce').astype('Int64')
 
-    # split in column nama program pelatihan into 2 columns (batch and program name)
+    # split column nama program pelatihan into 2 columns (batch and program name)
     df[['Batch', 'Program Pelatihan']] = df['Nama Program pelatihan yang anda ikuti'].str.extract(r'(Batch \d+)\s*-\s*(.+)', expand=True)
     df['Batch'] = df['Batch'].str.strip()
     df['Program Pelatihan'] = df['Program Pelatihan'].str.strip()
