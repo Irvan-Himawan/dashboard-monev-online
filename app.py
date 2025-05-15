@@ -42,6 +42,8 @@ if st.button("Refresh Data"):
 
 st.dataframe(df_cleaned)
 
+ALL_PROGRAMS_OPTION = "Semua Program Pelatihan"
+
 st.container()
 # Container 1: Filtered view of training data
 with st.container():
@@ -49,14 +51,33 @@ with st.container():
 
     # Sidebar-like filters
     col1, col2 = st.columns(2)
+
+    # Dropdown Batch
     with col1:
-        selected_batch = st.selectbox("Select Batch", options=df["Batch"].dropna().unique(), index=0)
+        selected_batch = st.selectbox(
+            "Pilih Batch/Jenis Pelatihan", 
+            options=sorted(df_cleaned["Batch"].dropna().unique()), 
+            index=0
+        )
+
+    # Filter Program Pelatihan berdasarkan batch yang dipilih
+    available_programs = df_cleaned[df_cleaned["Batch"] == selected_batch]["Program Pelatihan"].dropna().unique()
+    available_programs = sorted(available_programs)
+    available_programs.insert(0, ALL_PROGRAMS_OPTION)
+
     with col2:
-        selected_program = st.selectbox("Select Training Program", options=df["Program Pelatihan"].dropna().unique(), index=0)
+        selected_program = st.selectbox(
+            "Pilih Program Pelatihan", 
+            options=available_programs
+        )
 
-    # Filter DataFrame based on selections
-    filtered_df = df_cleaned[(df_cleaned["Batch"] == selected_batch) & (df_cleaned["Program Pelatihan"] == selected_program)]
+    # Filter dataframe
+    if selected_program == ALL_PROGRAMS_OPTION:
+        filtered_df = df_cleaned[df_cleaned["Batch"] == selected_batch]
+    else:
+        filtered_df = df_cleaned[(df_cleaned["Batch"] == selected_batch) & (df_cleaned["Program Pelatihan"] == selected_program)]
 
+    st.divider()
     # Display raw filtered table
     st.subheader("📄 Filtered Responses")
     st.dataframe(filtered_df, use_container_width=True)
@@ -67,7 +88,7 @@ with st.container():
     average_scores = {
         "Materi Pelatihan": filtered_df[columns_materi_pelatihan].mean().mean().round(2),
         "Penyelenggaraan/Manajemen": filtered_df[columns_materi_penyelenggaraan].mean().mean().round(2),
-        "Tenaga Pelatih/Instruktur  ": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
+        "Tenaga Pelatih/Instruktur": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
     }
 
     # Show as table
@@ -78,3 +99,34 @@ with st.container():
         "Category": list(average_scores.keys()),
         "Average Score": list(average_scores.values())
     })
+
+    # Tampilkan dalam bentuk kartu
+    st.markdown("### 📦 Rata-Rata per Kategori")
+
+    # Bagi jadi 3 kolom untuk 3 kartu
+    col1, col2, col3 = st.columns(3)
+
+    # Template kartu
+    def render_card(title, score, color="#f0f2f6"):
+        st.markdown(f"""
+            <div style="
+                background-color:{color};
+                padding:20px;
+                border-radius:10px;
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+                text-align:center;
+            ">
+                <h4 style="color:#333;">{title}</h4>
+                <h1 style="color:#0072C6;">{score:.2f}</h1>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # Isi setiap kolom
+    with col1:
+        render_card("Materi Pelatihan", average_scores["Materi Pelatihan"])
+
+    with col2:
+        render_card("Penyelenggaraan/Manajemen", average_scores["Penyelenggaraan/Manajemen"])
+
+    with col3:
+        render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
