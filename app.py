@@ -77,28 +77,12 @@ with st.container():
     else:
         filtered_df = df_cleaned[(df_cleaned["Batch"] == selected_batch) & (df_cleaned["Program Pelatihan"] == selected_program)]
 
-    st.divider()
-    # Display raw filtered table
-    st.subheader("📄 Filtered Responses")
-    st.dataframe(filtered_df, use_container_width=True)
-
-    # Calculate mean per group of questions
-    st.subheader("📈 Average Score per Question Group")
-
     average_scores = {
         "Materi Pelatihan": filtered_df[columns_materi_pelatihan].mean().mean().round(2),
         "Penyelenggaraan/Manajemen": filtered_df[columns_materi_penyelenggaraan].mean().mean().round(2),
         "Tenaga Pelatih/Instruktur": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
     }
 
-    # Show as table
-    st.write(pd.DataFrame(average_scores, index=["Rata - rata nilai"]))
-
-    # Plot comparison
-    chart_data = pd.DataFrame({
-        "Category": list(average_scores.keys()),
-        "Average Score": list(average_scores.values())
-    })
 
     # Tampilkan dalam bentuk kartu
     st.markdown("### 📦 Rata-Rata per Kategori")
@@ -130,3 +114,7 @@ with st.container():
 
     with col3:
         render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
+    
+    # Display raw filtered table
+    st.subheader("📄 Filtered Responses")
+    st.dataframe(filtered_df, use_container_width=True)
