@@ -5,19 +5,18 @@ from data_loader import load_data
 st.set_page_config(page_title="Dashboard Pengolahan Data Monev BPVP Bandung Barat", layout="wide")
 st.subheader("All data from respondents")
 
-# Data Preperation
-# call the data loader function
+# Load and cache the data
 @st.cache_data
 def get_data():
     return load_data()
 
-# load data
 df, columns_materi_pelatihan, columns_materi_penyelenggaraan, columns_materi_tenaga_pelatih = get_data()
 
-# copy oringinal data to new dataframe
+# Make a clean copy of the original dataframe
 df_cleaned = df.copy()
 
-# data cleaning > masking email address
+# Normalize Column
+# Edit column Email Address - Mask email addresses for privacy
 def mask_email(email):
     if pd.isna(email) or not isinstance(email, str):
         return email
@@ -28,7 +27,27 @@ def mask_email(email):
 
 df_cleaned["Email Address"] = df_cleaned["Email Address"].apply(mask_email)
 
-# data cleaning > drop unused columns
+# Create column generasi - classification age by generazation
+def classify_generation(age):
+        try:
+            age = int(age)
+        except:
+            return "Unknown"
+
+        if age <= 0:
+            return "Unknown"
+        elif age <= 26:
+            return "Gen Z"
+        elif age <= 42:
+            return "Milenial"
+        elif age <= 58:
+            return "Gen X"
+        elif age <= 76:
+            return "Boomer"
+        else:
+            return "Silent Gen"
+
+# Drop unnecessary columns
 unused_columns = [
     "Tanggal Pelatihan (Awal)",
     "Tanggal Pelatihan (Akhir)",
@@ -36,61 +55,60 @@ unused_columns = [
 df_cleaned.drop(unused_columns, axis=1, inplace=True)
 
 
-# create refresh button for clear the cache
+# ----------------------------------------------- Dashboard Start Here ------------------------------------------------------
+# Refresh button to clear cache
 if st.button("Refresh Data"):
     st.cache_data.clear()
 
+# Display raw data
+df_cleaned["Usia anda saat ini?"] = pd.to_numeric(df_cleaned["Usia anda saat ini?"], errors='coerce')
 st.dataframe(df_cleaned)
 
+# Define default program filter option
 ALL_PROGRAMS_OPTION = "Semua Program Pelatihan"
 
-st.container()
-# Container 1: Filtered view of training data
+# Filter section by batch and training program
 with st.container():
     st.header("📊 Evaluation Overview by Batch & Training Program")
 
-    # Sidebar-like filters
     col1, col2 = st.columns(2)
 
-    # Dropdown Batch
+    # Batch selection
     with col1:
         selected_batch = st.selectbox(
-            "Pilih Batch/Jenis Pelatihan", 
-            options=sorted(df_cleaned["Batch"].dropna().unique()), 
+            "Pilih Batch/Jenis Pelatihan",
+            options=sorted(df_cleaned["Batch"].dropna().unique()),
             index=0
         )
 
-    # Filter Program Pelatihan berdasarkan batch yang dipilih
+    # Filter available programs based on selected batch
     available_programs = df_cleaned[df_cleaned["Batch"] == selected_batch]["Program Pelatihan"].dropna().unique()
     available_programs = sorted(available_programs)
     available_programs.insert(0, ALL_PROGRAMS_OPTION)
 
     with col2:
         selected_program = st.selectbox(
-            "Pilih Program Pelatihan", 
+            "Pilih Program Pelatihan",
             options=available_programs
         )
 
-    # Filter dataframe
+    # Filter the dataframe accordingly
     if selected_program == ALL_PROGRAMS_OPTION:
         filtered_df = df_cleaned[df_cleaned["Batch"] == selected_batch]
     else:
         filtered_df = df_cleaned[(df_cleaned["Batch"] == selected_batch) & (df_cleaned["Program Pelatihan"] == selected_program)]
 
+    # Calculate average scores by group
     average_scores = {
         "Materi Pelatihan": filtered_df[columns_materi_pelatihan].mean().mean().round(2),
         "Penyelenggaraan/Manajemen": filtered_df[columns_materi_penyelenggaraan].mean().mean().round(2),
         "Tenaga Pelatih/Instruktur": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
     }
 
-
-    # Tampilkan dalam bentuk kartu
-    st.markdown("### 📦 Rata-Rata per Kategori")
-
-    # Bagi jadi 3 kolom untuk 3 kartu
+    # Show average scores as cards
+    st.markdown("### 📦 Average Score per Category")
     col1, col2, col3 = st.columns(3)
 
-    # Template kartu
     def render_card(title, score, color="#f0f2f6"):
         st.markdown(f"""
             <div style="
@@ -105,7 +123,6 @@ with st.container():
             </div>
         """, unsafe_allow_html=True)
 
-    # Isi setiap kolom
     with col1:
         render_card("Materi Pelatihan", average_scores["Materi Pelatihan"])
 
@@ -114,7 +131,17 @@ with st.container():
 
     with col3:
         render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
-    
-    # Display raw filtered table
+
+    # Display filtered raw data table
     st.subheader("📄 Filtered Responses")
     st.dataframe(filtered_df, use_container_width=True)
+
+  
+
+    df_cleaned["Generasi"] = df_cleaned["Usia anda saat ini?"].apply(classify_generation)
+
+    # Show bar chart of generation distribution
+    st.subheader("\U0001F465 Respondent Distribution by Generation")
+    generation_order = ["Gen Z", "Milenial", "Gen X", "Boomer", "Silent Gen", "Unknown"]
+    generation_counts = df_cleaned["Generasi"].value_counts().reindex(generation_order).fillna(0)
+    st.bar_chart(generation_counts, horizontal=True)
