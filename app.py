@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from data_loader import load_data
 
 st.set_page_config(page_title="Dashboard Pengolahan Data Monev BPVP Bandung Barat", layout="wide")
@@ -16,7 +17,7 @@ df, columns_materi_pelatihan, columns_materi_penyelenggaraan, columns_materi_ten
 df_cleaned = df.copy()
 
 # Normalize Column
-# Edit column Email Address - Mask email addresses for privacy
+## Edit column Email Address - Mask email addresses for privacy
 def mask_email(email):
     if pd.isna(email) or not isinstance(email, str):
         return email
@@ -27,7 +28,7 @@ def mask_email(email):
 
 df_cleaned["Email Address"] = df_cleaned["Email Address"].apply(mask_email)
 
-# Create column generasi - classification age by generazation
+## Create column generasi - classification age by generazation
 def classify_generation(age):
         try:
             age = int(age)
@@ -46,8 +47,9 @@ def classify_generation(age):
             return "Boomer"
         else:
             return "Silent Gen"
+df_cleaned["Generasi"] = df_cleaned["Usia anda saat ini?"].apply(classify_generation)
 
-# Drop unnecessary columns
+## Drop unnecessary columns
 unused_columns = [
     "Tanggal Pelatihan (Awal)",
     "Tanggal Pelatihan (Akhir)",
@@ -61,7 +63,6 @@ if st.button("Refresh Data"):
     st.cache_data.clear()
 
 # Display raw data
-df_cleaned["Usia anda saat ini?"] = pd.to_numeric(df_cleaned["Usia anda saat ini?"], errors='coerce')
 st.dataframe(df_cleaned)
 
 # Define default program filter option
@@ -104,9 +105,14 @@ with st.container():
         "Penyelenggaraan/Manajemen": filtered_df[columns_materi_penyelenggaraan].mean().mean().round(2),
         "Tenaga Pelatih/Instruktur": filtered_df[columns_materi_tenaga_pelatih].mean().mean().round(2)
     }
+    # Count responded per filter
+    total_respondent_filtered_df = filtered_df.shape[0]
+
+    # Avarage scores per filter
+    total_avarage_scores_filtered_df = filtered_df[columns_materi_tenaga_pelatih + columns_materi_penyelenggaraan + columns_materi_pelatihan].mean().mean().round(2)
 
     # Show average scores as cards
-    st.markdown("### 📦 Average Score per Category")
+    st.markdown(f"**Jumlah responden :** {total_respondent_filtered_df}")
     col1, col2, col3 = st.columns(3)
 
     def render_card(title, score, color="#f0f2f6"):
@@ -128,6 +134,26 @@ with st.container():
 
     with col2:
         render_card("Penyelenggaraan/Manajemen", average_scores["Penyelenggaraan/Manajemen"])
+        # create rating for average scores (all materi)
+        # Define rating logic
+        def get_rating_and_stars(score):
+            if score == 5:
+                return "Sangat Puas", 5
+            elif score >= 4:
+                return "Puas", 4
+            elif score >= 3:
+                return "Cukup Puas", 3
+            elif score >= 2:
+                return "Kurang Puas", 2
+            else:
+                return "Sangat Tidak Puas", 1
+
+        rating_text, star_count = get_rating_and_stars(total_avarage_scores_filtered_df)
+        stars_display = "⭐" * star_count
+
+        st.header("**Rata-rata Nilai**")
+        st.subheader(total_avarage_scores_filtered_df)
+        st.subheader(stars_display)
 
     with col3:
         render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
@@ -136,10 +162,7 @@ with st.container():
     st.subheader("📄 Filtered Responses")
     st.dataframe(filtered_df, use_container_width=True)
 
-  
-
-    df_cleaned["Generasi"] = df_cleaned["Usia anda saat ini?"].apply(classify_generation)
-
+     
     # Show bar chart of generation distribution
     st.subheader("\U0001F465 Respondent Distribution by Generation")
     generation_order = ["Gen Z", "Milenial", "Gen X", "Boomer", "Silent Gen", "Unknown"]
