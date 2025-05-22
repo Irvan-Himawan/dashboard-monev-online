@@ -2,9 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from data_loader import load_data
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 st.set_page_config(page_title="Dashboard Pengolahan Data Monev BPVP Bandung Barat", layout="wide")
-st.subheader("All data from respondents")
+st.markdown("# Hasil Monitoring dan Evaluasi Pelatihan Berbasis Kompetensi (PBK) BPVP Bandung Barat")
 
 # Load and cache the data
 @st.cache_data
@@ -62,16 +64,11 @@ df_cleaned.drop(unused_columns, axis=1, inplace=True)
 if st.button("Refresh Data"):
     st.cache_data.clear()
 
-# Display raw data
-st.dataframe(df_cleaned)
-
 # Define default program filter option
 ALL_PROGRAMS_OPTION = "Semua Program Pelatihan"
 
 # Filter section by batch and training program
 with st.container():
-    st.header("📊 Evaluation Overview by Batch & Training Program")
-
     col1, col2 = st.columns(2)
 
     # Batch selection
@@ -134,6 +131,14 @@ with st.container():
 
     with col2:
         render_card("Penyelenggaraan/Manajemen", average_scores["Penyelenggaraan/Manajemen"])
+       
+
+    with col3:
+        render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
+
+    col1, col2, col3 = st.columns(3)
+
+    with col2:
         # create rating for average scores (all materi)
         # Define rating logic
         def get_rating_and_stars(score):
@@ -151,20 +156,100 @@ with st.container():
         rating_text, star_count = get_rating_and_stars(total_avarage_scores_filtered_df)
         stars_display = "⭐" * star_count
 
-        st.header("**Rata-rata Nilai**")
-        st.subheader(total_avarage_scores_filtered_df)
-        st.subheader(stars_display)
-
-    with col3:
-        render_card("Tenaga Pelatih/Instruktur", average_scores["Tenaga Pelatih/Instruktur"])
-
+        st.markdown(f"""
+        <div style='text-align: center;'>
+            <h3>Total Rata-Rata Nilai: {total_avarage_scores_filtered_df}</h1>
+            <div style='font-size: 30px; color: gold;'>{stars_display}</div>
+            <p style='margin-top: 5px; font-size: 35px'>{rating_text}</p>
+        </div>
+        """, unsafe_allow_html=True)
     # Display filtered raw data table
     st.subheader("📄 Filtered Responses")
     st.dataframe(filtered_df, use_container_width=True)
 
-     
-    # Show bar chart of generation distribution
-    st.subheader("\U0001F465 Respondent Distribution by Generation")
-    generation_order = ["Gen Z", "Milenial", "Gen X", "Boomer", "Silent Gen", "Unknown"]
-    generation_counts = df_cleaned["Generasi"].value_counts().reindex(generation_order).fillna(0)
-    st.bar_chart(generation_counts, horizontal=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("#### Jumlah peserta berdasarkan generasi")
+
+        generation_order = ["Gen Z", "Milenial", "Gen X", "Boomer", "Silent Gen", "Unknown"]
+        generation_counts = df_cleaned["Generasi"].value_counts().reindex(generation_order).fillna(0).reset_index()
+        generation_counts.columns = ["Generasi", "Jumlah"]
+
+        fig = px.bar(
+            generation_counts,
+            x="Jumlah",
+            y="Generasi",
+            orientation="h",
+            color="Generasi",  # Opsional: buat warnanya beda per generasi
+            color_discrete_sequence=px.colors.qualitative.Set2,  # Atur warna
+            text="Jumlah"  # Tampilkan jumlah di bar
+        )
+
+        fig.update_layout(
+            xaxis_title="Jumlah Responden",
+            yaxis_title="",
+            showlegend=False,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=10, r=10, t=30, b=10)
+        )
+
+        fig.update_traces(textposition="outside")  # letakkan label di luar bar
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.markdown("#### Distribusi Pendidikan")
+        pendidikan_counts = df_cleaned["Pendidikan terakhir anda"].value_counts()
+        fig_pendidikan = px.pie(
+            names=pendidikan_counts.index,
+            values=pendidikan_counts.values,
+            hole=0.5,  # Donut style
+           
+        )
+        st.plotly_chart(fig_pendidikan, use_container_width=True)
+
+    with col3:
+        st.markdown("#### Distribusi Jenis Pekerjaan")
+        pekerjaan_counts = df_cleaned["Pekerjaan anda saat ini"].value_counts()
+        fig_pekerjaan = px.pie(
+            names=pekerjaan_counts.index,
+            values=pekerjaan_counts.values,
+            hole=0.5,  # Donut style
+            
+        )
+        st.plotly_chart(fig_pekerjaan, use_container_width=True)
+
+def summarize_comments(comments, top_n=1):
+    # Drop empty/null comments
+    comments = [c for c in comments if isinstance(c, str) and c.strip()]
+    if not comments:
+        return ["No comments available."]
+    
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(comments)
+    
+    # Hitung similarity antar komentar
+    sim_matrix = cosine_similarity(tfidf_matrix)
+    sim_scores = sim_matrix.sum(axis=1)
+    
+    # Ambil index komentar dengan nilai representasi tertinggi
+    top_idx = sim_scores.argsort()[-top_n:][::-1]
+    return [comments[i] for i in top_idx]
+
+# Contoh pemakaian untuk setiap kolom komentar pada materi pelatihan
+comment_columns = [col for col in filtered_df.columns if 'Komentar' in col]  # atau sebutkan langsung nama kolom
+
+st.markdown("### 💬 Ringkasan Komentar dari Peserta")
+col1, col2, col3 = st.columns(3)
+
+columns = [col1, col2, col3]
+for i, col in enumerate(columns):
+    if i < len(comment_columns):
+        materi = comment_columns[i]
+        comments = filtered_df[materi].dropna().tolist()
+        summary = summarize_comments(comments)
+        with col:
+            st.markdown(f"**{materi}**")
+            for s in summary:
+                st.info(f"💬 {s}")
