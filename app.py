@@ -305,11 +305,14 @@ with st.container():
         columns_materi_penyelenggaraan,
         columns_materi_tenaga_pelatih
         )
+    
+    selected_batch_name = selected_batch.replace(" ", "_")
+    selected_program_name = selected_program.replace(" ", "_")
 
     st.download_button(
         label="📥 Download Excel Data Monev",
         data=output,
-        file_name="data_monev.xlsx",
+        file_name=f"data_monev_{selected_batch_name}_{selected_program_name}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
