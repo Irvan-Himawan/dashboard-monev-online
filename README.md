@@ -1,2 +1,7 @@
-# dashboard-monev-online
-Dashboard for monitoring and evaluation of program Pelatihan Berbasis Kompetensi (PBK) in BPVP Bandung Barat
+## Setup Environment
+```
+pip install -r requirements.txt
+```
+
+## Run Steamlit app
+steamlit run app.py
