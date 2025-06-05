@@ -162,12 +162,12 @@ with st.container():
             else:
                 return "Sangat Tidak Puas", 1
 
-        rating_text, star_count = get_rating_and_stars(total_avarage_scores_filtered_df)
+        rating_text, star_count = get_rating_and_stars(total_average_scores_filtered_df)
         stars_display = "⭐" * star_count
 
         st.markdown(f"""
         <div style='text-align: center;'>
-            <h3>Total Rata-Rata Nilai: {total_avarage_scores_filtered_df}</h1>
+            <h3>Total Rata-Rata Nilai: {total_average_scores_filtered_df}
             <div style='font-size: 30px; color: gold;'>{stars_display}</div>
             <p style='margin-top: 5px; font-size: 35px'>{rating_text}</p>
         </div>
