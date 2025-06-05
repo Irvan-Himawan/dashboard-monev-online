@@ -110,8 +110,9 @@ with st.container():
     total_respondent_filtered_df = filtered_df.shape[0]
 
     # Avarage scores per filter
-    total_avarage_scores_filtered_df = filtered_df[columns_materi_tenaga_pelatih + columns_materi_penyelenggaraan + columns_materi_pelatihan].mean().mean().round(2)
-
+    total_average_scores_filtered_df = round(
+    sum(average_scores.values()) / len(average_scores),
+    2)
     # Show total respondent and name of the instructor
     instructor_name_filtered_df = filtered_df["Nama tenaga pelatih/instruktur"].dropna().unique()
     instructor_name_filtered_df = ", ".join(instructor_name_filtered_df)
