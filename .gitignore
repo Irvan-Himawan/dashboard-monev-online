@@ -8,4 +8,3 @@ __pycache__/
 # ignore credentials & env
 credentials.json
 .env
-config.py
