@@ -1,8 +1,9 @@
 import os
 import json
+import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
-from dotenv import load_dotenv
 
+# Scope untuk akses Google Sheets & Drive
 SCOPE = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/spreadsheets",
@@ -10,19 +11,28 @@ SCOPE = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-load_dotenv()
-gsheet_id = os.getenv("gsheet_id")
-gspread_json_path = os.getenv("GSPREAD_JSON")
+# Deteksi apakah dijalankan di Streamlit Cloud atau lokal
+if "gsheets" in st.secrets:
+    # ✅ Jika di Streamlit Cloud
+    creds_dict = st.secrets["gsheets"]
+    gsheet_id = st.secrets["general"]["gsheet_id"]
+else:
+    # ✅ Jika dijalankan secara lokal
+    from dotenv import load_dotenv
+    load_dotenv()
 
-if not gsheet_id:
-    raise ValueError("gsheet_id is not set in the .env file.")
-if not gspread_json_path:
-    raise ValueError("GSPREAD_JSON is not set in the .env file.")
-if not os.path.exists(gspread_json_path):
-    raise FileNotFoundError(f"GSPREAD_JSON path not found: {gspread_json_path}")
+    gsheet_id = os.getenv("gsheet_id")
+    json_path = os.getenv("GSPREAD_JSON")
 
-with open(gspread_json_path) as f:
-    creds_dict = json.load(f)
+    if not gsheet_id:
+        raise ValueError("gsheet_id not found in .env")
 
+    if not json_path or not os.path.exists(json_path):
+        raise FileNotFoundError(f"GSPREAD_JSON not found or path is invalid: {json_path}")
+
+    with open(json_path, "r") as f:
+        creds_dict = json.load(f)
+
+# Fungsi untuk mengembalikan credentials
 def get_credentials():
     return ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)

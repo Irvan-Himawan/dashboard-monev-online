@@ -8,3 +8,4 @@ __pycache__/
 # ignore credentials & env
 credentials.json
 .env
+.streamlit/secrets.toml
